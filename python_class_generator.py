@@ -1,30 +1,28 @@
 ind = ' ' * 4
-# q = '\'i'
-
-class Identifier:
-    def __init__(self, identifier):
-        self._identifier = identifier
-    def __str__(self):
-        return 'self._' + self._identifier
-class Literal:
-    def __init__(self, literal):
-        self._literal = literal
-    def __str__(self):
-        # return q + self._literal + q # quotes are already there!
-        return self._literal
 
 class NodeType:
     def __init__(self, name, base = ''):
-        self._name = name
+        self.name = name
         self._base = base
         self._parts = []
+        self._identifiers = set()
     def add_literal(self, literal):
-        self._parts.append(Literal(literal))
+        '''Note: the literal must already include quotes'''
+        self._parts.append(literal.replace('\\', '\\\\'))
     def add_identifier(self, identifier):
-        self._parts.append(Identifier(identifier))
+        c = 0
+        while identifier in self._identifiers:
+            c += 1
+            identifier += '_%d' % c
+        self._identifiers.add(identifier)
+        self._parts.append('self._' + identifier)
     def __str__(self):
-        r = 'class %s(%s):\n' % (self._name, self._base)
-        r += '\n'.join([]) # TODO methods
+        r = 'class %s(%s):\n' % (self.name, self._base)
+        if len(self._parts) == 0:
+            return r + ind + 'pass'
+        def identifier_setter(x):
+            return '%sdef set_%s(self, val):\n%sself._%s = val\n' % (ind, x, 2*ind, x)
+        r += ''.join(map(identifier_setter, self._identifiers))
         r += ind + 'def __str__(self):\n' + 2*ind + 'return '
         r += ' + '.join(map(str, self._parts))
         return r
