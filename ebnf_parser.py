@@ -14,13 +14,8 @@ ws = ~\"\s*\"
 '''
 
 import parsimonious
+import python_class_generator
 
-class Production:
-    def __init__(self, lhs, rhs):
-        self.lhs = lhs
-        self.rhs = rhs
-    def pp(self):
-        return self.lhs + ' ::= ' + self.rhs.pp()
 class Alternative:
     def __init__(self, alts):
         self.alts = alts
@@ -29,6 +24,9 @@ class Alternative:
 class Sequence:
     def __init__(self, parts):
         self.parts = parts
+    def populate_node_type(self, nt):
+        for part in self.parts:
+            part.populate_node_type(nt)
     def pp(self):
         return 'Sequence( ' + ', '.join(map(lambda x: x.pp(), self.parts)) + ' )'
 class Optional:
@@ -44,11 +42,15 @@ class List:
 class Identifier:
     def __init__(self, ident):
         self.ident = ident
+    def populate_node_type(self, nt):
+        nt.add_identifier(self.ident)
     def pp(self):
         return 'Identifier( ' + self.ident + ' )'
 class Literal:
     def __init__(self, literal):
         self.literal = literal
+    def populate_node_type(self, nt):
+        nt.add_literal(self.literal)
     def pp(self):
         return 'Literal( ' + self.literal + ' )'
 
@@ -56,7 +58,9 @@ class EbnfASTVisitor(parsimonious.NodeVisitor):
     def generic_visit(self, node, children):
         return (node.text, children, node.expr_name)
     def visit_syntax(self, node, children):
-        return children # list of productions
+        result = dict()
+        result.update(children)
+        return result
     def visit_production(self, node, children):
         children = self.nospaces(children)
         assert len(children) == 4
@@ -64,7 +68,7 @@ class EbnfASTVisitor(parsimonious.NodeVisitor):
         assert children[1][0] == '::='
         # assert isinstance(children[2], Sequence)
         assert children[3][0] in [';', '.']
-        return Production(children[0].ident, children[2])
+        return (children[0].ident, children[2])
     def visit_expression(self, node, children):
         children = self.nospaces(children)
         assert len(children) == 2
@@ -106,6 +110,9 @@ if __name__ == '__main__':
     with open('vhdl.ebnf', 'r') as f:
         input_ebnf = f.read()
     parseTree = ebnf_grammar.parse(input_ebnf)
-    ast = EbnfASTVisitor().visit(parseTree)
-    for prod in ast:
-        print(prod.pp())
+    rules = EbnfASTVisitor().visit(parseTree)
+    for (lhs, rhs) in rules.items():
+        c = python_class_generator.NodeType(lhs)
+        rhs.populate_node_type(c)
+        print(c)
+        exit() # TODO remove
