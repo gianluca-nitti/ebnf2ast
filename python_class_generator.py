@@ -1,4 +1,4 @@
-ind = ' ' * 4
+ind = 4*' '
 
 class NodeType:
     def __init__(self, name, base = ''):
