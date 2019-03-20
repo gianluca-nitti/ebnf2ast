@@ -24,7 +24,7 @@ class Alternative:
         result = []
         for alt in self.alts:
             alt_nt = node_builder('alternative_%d' % Alternative.next_nt_index, nt.name)
-            alt.populate_node_type(alt_nt, node_builder)
+            result.extend(alt.populate_node_type(alt_nt, node_builder))
             result.append(alt_nt)
             Alternative.next_nt_index += 1
         return result
@@ -41,10 +41,16 @@ class Sequence:
     def pp(self):
         return 'Sequence( ' + ', '.join(map(lambda x: x.pp(), self.parts)) + ' )'
 class Optional:
+    next_nt_index = 1
     def __init__(self, content):
         self.content = content
     def populate_node_type(self, nt, node_builder):
-        return [] # TODO
+        opt_nt = node_builder('optional_%d' % Optional.next_nt_index)
+        nt.add_optional(opt_nt.name)
+        result = [opt_nt]
+        result.extend(self.content.populate_node_type(opt_nt, node_builder))
+        Optional.next_nt_index += 1
+        return result
     def pp(self):
         return 'Optional( ' + self.content.pp() + ' )'
 class List:
