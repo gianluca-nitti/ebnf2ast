@@ -36,10 +36,16 @@ class Optional:
     def pp(self):
         return 'Optional( ' + self.content.pp() + ' )'
 class List:
+    next_nt_index = 1
     def __init__(self, content):
         self.content = content
     def populate_node_type(self, nt, node_builder):
-        return [] # TODO
+        list_nt = node_builder('list_%d' % List.next_nt_index)
+        nt.add_list(list_nt.name)
+        result = [list_nt]
+        result.extend(self.content.populate_node_type(list_nt, node_builder))
+        List.next_nt_index += 1
+        return result
     def pp(self):
         return 'List( ' + self.content.pp() + ' )'
 class Identifier:
