@@ -1,6 +1,8 @@
 from itertools import chain
 
 ind = 4*' '
+annotations_enabled = True
+runtime_checks_enabled = True
 
 class NodeType:
     def __init__(self, name, base = ''):
@@ -35,7 +37,7 @@ class NodeType:
             return lambda x: '%sself._%s = %s\n' % (2*ind, x, val)
         def build_renderer(part):
             if part in chain(self._identifiers, self._optionals):
-                return 'self._' + part
+                return 'str(self._%s)' % part
             elif part in self._lists:
                 return '\"\".join(map(str, self._%s))' % part
             else: # literals
@@ -51,5 +53,4 @@ class NodeType:
         r += ''.join(map(build_setter, settable_parts))
         r += ind + 'def __str__(self):\n' + 2*ind + 'return '
         r += ' + '.join(map(build_renderer, self._parts))
-        # TODO keep track of which one are lists and print them accordingly
         return r
