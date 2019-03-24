@@ -1,66 +1,82 @@
-class Alternative:
-    next_nt_index = 0
+import re
+
+class RuleComponent:
+    def set_name(self, val):
+        self._name = val
+    def get_name(self):
+        return self._name
+    def name_parts(self):
+        pass
+    def simplify(self):
+        return self
+    def dfsMap(self, f):
+        pass
+class Container(RuleComponent):
+    def __init__(self, contents):
+        self._contents = contents
+    def name_parts(self):
+        for part in self._contents:
+            part.name_parts()
+        used_names = set()
+        def name_part(part):
+            base_name = re.sub('\W|^(?=\d)','', part.get_preferred_name())
+            # TODO also ensure it's not a keyword
+            name = base_name
+            i = 1
+            while name in used_names:
+                name = '%s_%d' % (base_name, i)
+                i += 1
+            used_names.add(name)
+            part.set_name(name)
+            return part
+        self._contents = list(map(name_part, self._contents))
+    def get_preferred_name(self):
+        return '_'.join(map(lambda x: x.get_preferred_name(), self._contents))
+    def dfsMap(self, f):
+        for i in range(len(self._contents)):
+            self._contents[i].dfsMap(f)
+            self._contents[i] = f(self._contents[i])
+
+class Alternative(Container):
     def __init__(self, alts):
-        self.alts = alts
-    def populate_node_type(self, nt, node_builder):
-        result = []
-        for alt in self.alts:
-            Alternative.next_nt_index += 1
-            alt_nt = node_builder('alternative_%d' % Alternative.next_nt_index, nt.name)
-            result.extend(alt.populate_node_type(alt_nt, node_builder))
-            result.append(alt_nt)
-        return result
+        super().__init__(alts)
     def pp(self):
-        return 'Alternative( ' + ', '.join(map(lambda x: x.pp(), self.alts)) + ' )'
-class Sequence:
+        return 'Alternative( ' + ', '.join(map(lambda x: x.pp(), self._contents)) + ' )'
+class Sequence(Container):
     def __init__(self, parts):
-        self.parts = parts
-    def populate_node_type(self, nt, node_builder):
-        additional = []
-        for part in self.parts:
-            additional.extend(part.populate_node_type(nt, node_builder))
-        return additional # TODO replace loop with some sort of map & reduce
+        super().__init__(parts)
+    def simplify(self):
+        # if len(self._contents) == 1:
+        #    return self._contents[0]
+        return self
     def pp(self):
-        return 'Sequence( ' + ', '.join(map(lambda x: x.pp(), self.parts)) + ' )'
-class Optional:
-    next_nt_index = 0
+        return 'Sequence( ' + ', '.join(map(lambda x: x.pp(), self._contents)) + ' )'
+class Optional(Container):
     def __init__(self, content):
-        self.content = content
-    def populate_node_type(self, nt, node_builder):
-        Optional.next_nt_index += 1
-        opt_nt = node_builder('optional_%d' % Optional.next_nt_index)
-        nt.add_optional(opt_nt.name)
-        result = [opt_nt]
-        result.extend(self.content.populate_node_type(opt_nt, node_builder))
-        return result
+        super().__init__([content])
+    def get_preferred_name(self):
+        return 'opt_%s' % self._contents[0].get_preferred_name()
     def pp(self):
-        return 'Optional( ' + self.content.pp() + ' )'
-class List:
-    next_nt_index = 0
+        return 'Optional( ' + self._contents[0].pp() + ' )'
+class List(Container):
     def __init__(self, content):
-        self.content = content
-    def populate_node_type(self, nt, node_builder):
-        List.next_nt_index += 1
-        list_nt = node_builder('list_%d' % List.next_nt_index)
-        nt.add_list(list_nt.name)
-        result = [list_nt]
-        result.extend(self.content.populate_node_type(list_nt, node_builder))
-        return result
+        super().__init__([content])
+    def get_preferred_name(self):
+        return 'list' # TODO
     def pp(self):
-        return 'List( ' + self.content.pp() + ' )'
-class Identifier:
+        return 'List( ' + self._contents[0].pp() + ' )'
+
+class Identifier(RuleComponent):
     def __init__(self, ident):
         self.ident = ident
-    def populate_node_type(self, nt, node_builder):
-        nt.add_identifier(self.ident)
-        return []
+    def get_preferred_name(self):
+        return self.ident
     def pp(self):
         return 'Identifier( ' + self.ident + ' )'
-class Literal:
+class Literal(RuleComponent):
     def __init__(self, literal):
         self.literal = literal
-    def populate_node_type(self, nt, node_builder):
-        nt.add_literal(self.literal)
-        return []
+    def get_preferred_name(self):
+        return self.literal.replace('\"', '').replace(' ', '') # TODO potentially dangerous!
     def pp(self):
         return 'Literal( ' + self.literal + ' )'

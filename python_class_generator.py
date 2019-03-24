@@ -1,56 +1,70 @@
-from itertools import chain
+import ebnf_nodes
 
 ind = 4*' '
 annotations_enabled = True
 runtime_checks_enabled = True
 
-class NodeType:
-    def __init__(self, name, base = ''):
-        self.name = name
-        self._base = base
-        self._parts = []
-        self._identifiers = set()
-        self._optionals = set()
-        self._lists = set()
-    def add_literal(self, literal):
-        '''Note: the literal must already include quotes'''
-        self._parts.append(literal.replace('\\', '\\\\').replace('\"', ' \" '))
-    def add_identifier(self, identifier):
-        c = 0
-        while identifier in self._identifiers:
-            c += 1
-            identifier += '_%d' % c
-        self._identifiers.add(identifier)
-        self._parts.append(identifier)
-    def add_optional(self, optional):
-        # TODO: ensure no duplication, like identifiers
-        self._optionals.add(optional)
-        self._parts.append(optional)
-    def add_list(self, lst):
-        # TODO: ensure no duplication, like identifiers
-        self._lists.add(lst)
-        self._parts.append(lst)
-    def __str__(self):
-        def build_setter(x):
-            return '%sdef set_%s(self, val):\n%sself._%s = val\n' % (ind, x, 2*ind, x)
-        def initializer_builder(val):
-            return lambda x: '%sself._%s = %s\n' % (2*ind, x, val)
-        def build_renderer(part):
-            if part in chain(self._identifiers, self._optionals):
-                return 'str(self._%s)' % part
-            elif part in self._lists:
-                return '\"\".join(map(str, self._%s))' % part
-            else: # literals
-                return part
-        r = 'class %s(%s):\n' % (self.name, self._base)
-        if len(self._parts) == 0:
-            return r + ind + 'pass'
-        if len(self._optionals) > 0 or len(self._lists) > 0:
-            r += '%sdef __init__(self):\n' % ind
-            r += ''.join(map(initializer_builder('\"\"'), self._optionals))
-            r += ''.join(map(initializer_builder('[]'), self._lists))
-        settable_parts = chain(self._identifiers, self._optionals, self._lists)
-        r += ''.join(map(build_setter, settable_parts))
-        r += ind + 'def __str__(self):\n' + 2*ind + 'return '
-        r += ' + '.join(map(build_renderer, self._parts))
+class Alternative(ebnf_nodes.Alternative):
+    def render(self, name):
+        result = ''
+        result += 'class %s:\n%spass\n' % (name, ind)
+        for alt in self._contents:
+            assert isinstance(alt, Sequence), 'An Alternative must only contain Sequences'
+            result += alt.render('%s_%s' % (name, alt.get_name()), name)
+        return result
+class Sequence(ebnf_nodes.Sequence):
+    def render(self, name, base=''):
+        assert len(self._contents) > 0, 'Sequence must not be empty'
+        classes = []
+        constructor_lines = []
+        methods = []
+        str_result = []
+        # TODO make everything settable via constructor
+        for part in self._contents:
+            assert not isinstance(part, Alternative), 'Alternative inside Sequence'
+            assert not isinstance(part, Sequence), 'Nested Sequences'
+            if hasattr(part, 'render_class'):
+                classes.append(part.render_class(part.get_name()))
+            if hasattr(part, 'render_initializer'):
+                constructor_lines.append(part.render_initializer(part.get_name()))
+            if hasattr(part, 'render_methods'):
+                methods.append(part.render_methods(part.get_name()))
+            str_result.append(part.render_str(part.get_name()))
+        r = ''.join(classes)
+        r += 'class %s%s:\n' % (name, '(%s)' % base if len(base) > 0 else '')
+        if len(constructor_lines) > 0:
+            r += '%sdef __init__(self):\n%s' % (ind, ''.join(constructor_lines))
+        r += ''.join(methods)
+        r += '%sdef __str__(self):\n%sreturn %s\n' % (ind, 2*ind, ' + '.join(str_result))
         return r
+class Optional(ebnf_nodes.Optional):
+    def render_class(self, name):
+        c = self._contents[0]
+        assert isinstance(c, Sequence) or isinstance(c, Alternative), 'Optional must contain Sequence or Alternative'
+        return c.render(name)
+    def render_initializer(self, name):
+        return '%sself._%s = \'\'\n' % (2*ind, name)
+    def render_methods(self, name):
+        return '%sdef set_%s(self, val):\n%sself._%s = val\n' % (ind, name, 2*ind, name)
+    def render_str(self, name):
+        return 'str(self._%s)' % name
+class List(ebnf_nodes.List):
+    def render_class(self, name):
+        c = self._contents[0]
+        assert isinstance(c, Sequence) or isinstance(c, Alternative), 'List must contain Sequence or Alternative'
+        return c.render(name)
+    def render_initializer(self, name):
+        return '%sself._%s = []\n' % (2*ind, name)
+    def render_methods(self, name):
+        return '%sdef set_%s_list(self, val):\n%sself._%s = val\n' % (ind, name, 2*ind, name)
+    def render_str(self, name):
+        return '\'\'.join(map(str, self._%s))' % name
+class Identifier(ebnf_nodes.Identifier):
+    def render_methods(self, name):
+        # use self.ident for type annotation / checking
+        return '%sdef set_%s(self, val):\n%sself._%s = val\n' % (ind, name, 2*ind, name)
+    def render_str(self, name):
+        return 'str(self._%s)' % name
+class Literal(ebnf_nodes.Literal):
+    def render_str(self, name):
+        return self.literal.replace('\\', '\\\\').replace('\"', ' \" ')

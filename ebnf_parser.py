@@ -12,9 +12,10 @@ ws = ~\"\s*\"
 '''
 
 import parsimonious
-from ebnf_nodes import *
 
 class EbnfASTVisitor(parsimonious.NodeVisitor):
+    def __init__(self, nodes_mod):
+        self._nodes_mod = nodes_mod
     def generic_visit(self, node, children):
         return (node.text, children, node.expr_name)
     def visit_syntax(self, node, children):
@@ -24,7 +25,7 @@ class EbnfASTVisitor(parsimonious.NodeVisitor):
     def visit_production(self, node, children):
         children = self.nospaces(children)
         assert len(children) == 4
-        assert isinstance(children[0], Identifier)
+        assert isinstance(children[0], self._nodes_mod.Identifier)
         assert children[1][0] == '::='
         # assert isinstance(children[2], Sequence)
         assert children[3][0] in [';', '.']
@@ -39,11 +40,11 @@ class EbnfASTVisitor(parsimonious.NodeVisitor):
             assert alt_children[0][0] == '|'
             alts.append(alt_children[1])
         if len(alts) > 1:
-            return Alternative(alts)
+            return self._nodes_mod.Alternative(alts)
         else:
             return alts[0]
     def visit_term(self, node, children):
-        return Sequence(map(lambda x: x[1][1], children))
+        return self._nodes_mod.Sequence(list(map(lambda x: x[1][1], children)))
     def visit_factor(self, node, children):
         children = self.nospaces(children)
         assert len(children) in [0, 1]
@@ -52,14 +53,14 @@ class EbnfASTVisitor(parsimonious.NodeVisitor):
         return children[0]
     def visit_optional(self, node, children):
         assert len(children) == 3 and children[0][0] == '[' and children[2][0] == ']'
-        return Optional(children[1])
+        return self._nodes_mod.Optional(children[1])
     def visit_list(self, node, children):
         assert len(children) == 3 and children[0][0] == '{' and children[2][0] == '}'
-        return List(children[1])
+        return self._nodes_mod.List(children[1])
     def visit_identifier(self, node, children):
-        return Identifier(node.text)
+        return self._nodes_mod.Identifier(node.text)
     def visit_literal(self, node, children):
-        return Literal(node.text)
+        return self._nodes_mod.Literal(node.text)
     def visit_ws(self, node, children):
         return None
     def nospaces(self, nodes):
@@ -67,5 +68,5 @@ class EbnfASTVisitor(parsimonious.NodeVisitor):
 
 _ebnf_grammar = parsimonious.Grammar(ebnf_in_ebnf)
 
-def parse(source):
-    return EbnfASTVisitor().visit(_ebnf_grammar.parse(source))
+def parse(source, nodes_module):
+    return EbnfASTVisitor(nodes_module).visit(_ebnf_grammar.parse(source))
