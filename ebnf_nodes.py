@@ -1,4 +1,4 @@
-import re
+import util
 
 class RuleComponent:
     def set_name(self, val):
@@ -19,13 +19,8 @@ class Container(RuleComponent):
             part.name_parts()
         used_names = set()
         def name_part(part):
-            base_name = re.sub('\W|^(?=\d)','', part.get_preferred_name())
+            name = util.unique_sanitized_name(part.get_preferred_name(), used_names)
             # TODO also ensure it's not a keyword
-            name = base_name
-            i = 1
-            while name in used_names:
-                name = '%s_%d' % (base_name, i)
-                i += 1
             used_names.add(name)
             part.set_name(name)
             return part

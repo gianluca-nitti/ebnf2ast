@@ -1,4 +1,4 @@
-import ebnf_nodes
+import ebnf_nodes, util
 
 ind = 4*' '
 annotations_enabled = True
@@ -8,11 +8,7 @@ _used_class_names = set()
 
 class Alternative(ebnf_nodes.Alternative):
     def render(self, name):
-        # Ensure name uniqueness
-        (base_name, i) = (name, 1)
-        while name in _used_class_names: # TODO move to a function...
-            (name, i) = ('%s_%d' % (base_name, i), i + 1)
-        _used_class_names.add(name)
+        name = util.unique_name(name, _used_class_names)
         result = 'class %s:\n%spass\n' % (name, ind)
         for alt in self._contents:
             assert isinstance(alt, Sequence), 'An Alternative must only contain Sequences'
@@ -21,11 +17,7 @@ class Alternative(ebnf_nodes.Alternative):
 class Sequence(ebnf_nodes.Sequence):
     def render(self, name, base=''):
         assert len(self._contents) > 0, 'Sequence must not be empty'
-        # Ensure name uniqueness
-        (base_name, i) = (name, 1)
-        while name in _used_class_names: # TODO move to a function...
-            (name, i) = ('%s_%d' % (base_name, i), i + 1)
-        _used_class_names.add(name)
+        name = util.unique_name(name, _used_class_names)
         classes = []
         constructor_lines = []
         methods = []
