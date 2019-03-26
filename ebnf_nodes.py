@@ -3,7 +3,6 @@ import re
 class RuleComponent:
     def set_name(self, val):
         self._name = val
-        return val
     def get_name(self):
         return self._name
     def name_parts(self):
@@ -13,17 +12,8 @@ class RuleComponent:
     def dfsMap(self, f):
         pass
 class Container(RuleComponent):
-    _globally_used_names = set()
     def __init__(self, contents):
         self._contents = contents
-    def set_name(self, base_name):
-        # Containers must have globally unique names since they'll become classes
-        (name, i) = (base_name, 1)
-        while name in Container._globally_used_names: # TODO move to a function...
-            (name, i) = ('%s_%d' % (base_name, i), i + 1)
-        Container._globally_used_names.add(name)
-        super().set_name(name)
-        return name
     def name_parts(self):
         for part in self._contents:
             part.name_parts()
@@ -31,13 +21,15 @@ class Container(RuleComponent):
         def name_part(part):
             base_name = re.sub('\W|^(?=\d)','', part.get_preferred_name())
             # TODO also ensure it's not a keyword
-            (name, i) = (base_name, 1)
-            while name in used_names: # TODO ... and use it here as well
-                (name, i) = ('%s_%d' % (base_name, i), i + 1)
-            definitive_name = part.set_name(name)
-            used_names.add(definitive_name)
+            name = base_name
+            i = 1
+            while name in used_names:
+                name = '%s_%d' % (base_name, i)
+                i += 1
+            used_names.add(name)
+            part.set_name(name)
             return part
-        self._contents = list(map(name_part, self._contents)) # TODO no need to reassign
+        self._contents = list(map(name_part, self._contents))
     def get_preferred_name(self):
         return '_'.join(map(lambda x: x.get_preferred_name(), self._contents))
     def dfsMap(self, f):
