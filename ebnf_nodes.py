@@ -1,4 +1,4 @@
-import util
+import sys, util
 
 class RuleComponent:
     def set_name(self, val):
@@ -9,6 +9,8 @@ class RuleComponent:
         pass
     def simplify(self):
         return self
+    def dfs_visit(self, f):
+        pass
     def dfsMap(self, f):
         pass
 class Container(RuleComponent):
@@ -18,15 +20,18 @@ class Container(RuleComponent):
         for part in self._contents:
             part.name_parts()
         used_names = set()
+        kws = {} # sys.modules[self.__module__].keywords # TODO
         def name_part(part):
-            name = util.unique_sanitized_name(part.get_preferred_name(), used_names)
-            # TODO also ensure it's not a keyword
-            used_names.add(name)
+            name = util.unique_sanitized_name(part.get_preferred_name(), used_names, kws)
             part.set_name(name)
             return part
         self._contents = list(map(name_part, self._contents))
     def get_preferred_name(self):
         return '_'.join(map(lambda x: x.get_preferred_name(), self._contents))
+    def dfs_visit(self, f):
+        for i in range(len(self._contents)):
+            self._contents[i].dfs_visit(f)
+            f(self._contents[i])
     def dfsMap(self, f):
         for i in range(len(self._contents)):
             self._contents[i].dfsMap(f)

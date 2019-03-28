@@ -1,4 +1,6 @@
-import ebnf_nodes, util
+import keyword, ebnf_nodes, util
+
+keywords = keyword.kwlist
 
 ind = 4*' '
 annotations_enabled = True
@@ -64,8 +66,7 @@ class List(ebnf_nodes.List):
         return '\'\'.join(map(str, self._%s))' % name
 class Identifier(ebnf_nodes.Identifier):
     def render_methods(self, name):
-        # use self.ident for type annotation / checking
-        return '%sdef set_%s(self, val):\n%sself._%s = val\n' % (ind, name, 2*ind, name)
+        return '%sdef set_%s(self, val: \'%s\'):\n%sself._%s = val\n' % (ind, name, self.ident, 2*ind, name)
     def render_str(self, name):
         return 'str(self._%s)' % name
 class Literal(ebnf_nodes.Literal):
