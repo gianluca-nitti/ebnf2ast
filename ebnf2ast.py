@@ -35,6 +35,7 @@ if __name__ == '__main__':
     rules = ebnf_parser.parse(input_ebnf, python_class_generator)
     transform.apply_all(rules, python_class_generator)
     identifiers_stats(rules, 'design_file')
+    print(python_class_generator.header, end='')
     for (lhs, rhs) in rules.items():
         assert isinstance(rhs, ebnf_nodes.Sequence) or isinstance(rhs, ebnf_nodes.Alternative)
         print(rhs.render(lhs), end='')

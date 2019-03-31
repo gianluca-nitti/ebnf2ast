@@ -62,7 +62,7 @@ class List(Container):
     def __init__(self, content):
         super().__init__([content])
     def get_preferred_name(self):
-        return 'list' # TODO
+        return 'list_%s' % self._contents[0].get_preferred_name()
     def pp(self):
         return 'List( ' + self._contents[0].pp() + ' )'
 

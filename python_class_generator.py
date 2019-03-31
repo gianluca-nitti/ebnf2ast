@@ -8,6 +8,13 @@ runtime_checks_enabled = True
 
 _used_class_names = set()
 
+header = '''
+import typing
+
+def _opt_to_str(x):
+    return str(x) if x != None else \'\'\n
+'''
+
 class Alternative(ebnf_nodes.Alternative):
     def render(self, name):
         name = util.unique_name(name, _used_class_names)
@@ -59,12 +66,12 @@ class Optional(ebnf_nodes.Optional):
     def render_def_initializer(self, name):
         return '%sself._%s = \'\'\n' % (2*ind, name)
     def render_constructor_part(self, name):
-        # return ('_%s: \'%s\' = \'\'' % (name, self.ident), '%sself._%s = _%s\n' % (2*ind, name, name))
-        return (1, '_%s = \'\'' % name, '%sself._%s = _%s\n' % (2*ind, name, name))
+        return (1, '_%s: \'typing.Optional[%s]\' = None' % (name, name), \
+                '%sself._%s = _%s\n' % (2*ind, name, name))
     def render_methods(self, name):
-        return '%sdef set_%s(self, val):\n%sself._%s = val\n' % (ind, name, 2*ind, name)
+        return '%sdef set_%s(self, val: \'typing.Optional[%s]\'):\n%sself._%s = val\n' % (ind, name, name, 2*ind, name)
     def render_str(self, name):
-        return 'str(self._%s)' % name
+        return '_opt_to_str(self._%s)' % name
 class List(ebnf_nodes.List):
     def render_class(self, name):
         c = self._contents[0]
@@ -73,10 +80,10 @@ class List(ebnf_nodes.List):
     def render_def_initializer(self, name):
         return '%sself._%s = []\n' % (2*ind, name)
     def render_constructor_part(self, name):
-        # return ('_%s: \'%s\' = \'\'' % (name, self.ident), '%sself._%s = _%s\n' % (2*ind, name, name))
-        return (1, '_%s = []' % name, '%sself._%s = _%s\n' % (2*ind, name, name))
+        return (1, '_%s: \'typing.List[%s]\' = []' % (name, name), \
+                '%sself._%s = _%s\n' % (2*ind, name, name))
     def render_methods(self, name):
-        return '%sdef set_%s_list(self, val):\n%sself._%s = val\n' % (ind, name, 2*ind, name)
+        return '%sdef set_%s_list(self, val: \'typing.List[%s]\'):\n%sself._%s = val\n' % (ind, name, name, 2*ind, name)
     def render_str(self, name):
         return '\'\'.join(map(str, self._%s))' % name
 class Identifier(ebnf_nodes.Identifier):
