@@ -7,8 +7,6 @@ class RuleComponent:
         return self._name
     def name_parts(self):
         pass
-    def simplify(self):
-        return self
     def dfs_visit(self, f):
         pass
     def dfsMap(self, f):
@@ -45,10 +43,6 @@ class Alternative(Container):
 class Sequence(Container):
     def __init__(self, parts):
         super().__init__(parts)
-    def simplify(self):
-        # if len(self._contents) == 1:
-        #    return self._contents[0]
-        return self
     def pp(self):
         return 'Sequence( ' + ', '.join(map(lambda x: x.pp(), self._contents)) + ' )'
 class Optional(Container):

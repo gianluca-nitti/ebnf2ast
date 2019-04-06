@@ -1,14 +1,14 @@
-ebnf_in_ebnf = '''
+_ebnf_spec = r'''
 syntax = production+
-production = identifier ws \"::=\" expression ( \".\" / \";\" ) ws
-expression = ws term ( ws \"|\" term )* ws
+production = identifier ws "::=" expression ( "." / ";" ) ws
+expression = ws term ( ws "|" term )* ws
 term = (ws factor)+
 factor = identifier / literal / optional / list
-optional = \"[\" expression \"]\"
-list = \"{\" expression \"}\"
-identifier = ~\"[a-zA-Z0-9_]+\"
-literal = ~\"\\\".*?\\\"\"
-ws = ~\"\s*\"
+optional = "[" expression "]"
+list = "{" expression "}"
+identifier = ~"[a-zA-Z0-9_]+"
+literal = '"' ~'[^\"]*' '"'
+ws = ~"\s*"
 '''
 
 import parsimonious
@@ -60,13 +60,14 @@ class EbnfASTVisitor(parsimonious.NodeVisitor):
     def visit_identifier(self, node, children):
         return self._nodes_mod.Identifier(node.text)
     def visit_literal(self, node, children):
-        return self._nodes_mod.Literal(node.text)
+        assert len(children) == 3 and children[0][0] == '\"' and children[2][0] == '\"'
+        return self._nodes_mod.Literal(children[1][0])
     def visit_ws(self, node, children):
         return None
     def nospaces(self, nodes):
         return list(filter(lambda x: x != None, nodes))
 
-_ebnf_grammar = parsimonious.Grammar(ebnf_in_ebnf)
+_ebnf_grammar = parsimonious.Grammar(_ebnf_spec)
 
 def parse(source, nodes_module):
     return EbnfASTVisitor(nodes_module).visit(_ebnf_grammar.parse(source))
