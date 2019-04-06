@@ -14,6 +14,10 @@ class RuleComponent:
 class Container(RuleComponent):
     def __init__(self, contents):
         self._contents = contents
+    def __hash__(self):
+        return sum(map(hash, self._contents))
+    def __eq__(self, other):
+        return isinstance(other, Container) and self._contents == other._contents
     def name_parts(self):
         for part in self._contents:
             part.name_parts()
@@ -63,6 +67,10 @@ class List(Container):
 class Identifier(RuleComponent):
     def __init__(self, ident):
         self.ident = ident
+    def __hash__(self):
+        return hash(self.ident)
+    def __eq__(self, other):
+        return isinstance(other, Identifier) and self.ident == other.ident
     def get_preferred_name(self):
         return self.ident
     def pp(self):
@@ -70,7 +78,11 @@ class Identifier(RuleComponent):
 class Literal(RuleComponent):
     def __init__(self, literal):
         self.literal = literal
+    def __hash__(self):
+        return hash(self.literal)
+    def __eq__(self, other):
+        return isinstance(other, Literal) and self.ident == other.literal
     def get_preferred_name(self):
-        return self.literal.replace('\"', '').replace(' ', '') # TODO potentially dangerous!
+        return self.literal
     def pp(self):
         return 'Literal( ' + self.literal + ' )'

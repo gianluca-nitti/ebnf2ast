@@ -25,6 +25,14 @@ def concat_adj_literals(rules, module):
             return node
     dfsMap(f, rules)
 
+def remove_dup_alternatives(rules, module):
+    def f(node):
+        if isinstance(node, module.Alternative):
+            return module.Alternative(list(set(node._contents)))
+        else:
+            return node
+    dfsMap(f, rules)
+
 def name_parts(rules, module):
     for rhs in rules.values():
         rhs.name_parts()
@@ -42,6 +50,6 @@ def pad_literals(rules, module):
     dfsMap(f, rules)
 
 def apply_all(rules, module):
-    transforms = [pad_literals, concat_adj_literals, fix_quotes, name_parts]
+    transforms = [remove_dup_alternatives, pad_literals, concat_adj_literals, fix_quotes, name_parts]
     for t in transforms:
         t(rules, module)
