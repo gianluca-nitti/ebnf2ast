@@ -40,7 +40,7 @@ def name_parts(rules, module):
 def fix_quotes(rules, module):
     def f(node):
         flt = isinstance(node, module.Identifier) and node.ident == 'double_quote'
-        return module.Literal('\'"\'') if flt else node
+        return module.Literal('\'"\'') if flt else node # TODO check with a VHDL string literal
     dfsMap(f, rules)
 
 def pad_literals(rules, module):

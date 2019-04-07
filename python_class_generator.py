@@ -66,8 +66,17 @@ class Optional(ebnf_nodes.Optional):
     def render_def_initializer(self, name):
         return '%sself._%s = \'\'\n' % (2*ind, name)
     def render_constructor_part(self, name):
-        return (1, '_%s: \'typing.Optional[%s]\' = None' % (name, name), \
-                '%sself._%s = _%s\n' % (2*ind, name, name))
+        type_annot = 'typing.Optional[%s]' % name
+        init_expr = '_%s' % name
+        # Allow True/False to be used to enable/disable an optional literal without manually instantiating it
+        if isinstance(self._contents[0], Sequence) \
+            and len(self._contents[0]._contents) == 1 \
+            and isinstance(self._contents[0]._contents[0], Literal):
+                type_annot = 'typing.Union[%s, bool]' % type_annot
+                init_expr = '%s() if %s == True else (None if %s == False else %s)' \
+                    % (name, init_expr, init_expr, init_expr)
+        return (1, '_%s: \'%s\' = None' % (name, type_annot), \
+                '%sself._%s = %s\n' % (2*ind, name, init_expr))
     def render_methods(self, name):
         return '%sdef set_%s(self, val: \'typing.Optional[%s]\'):\n%sself._%s = val\n' % (ind, name, name, 2*ind, name)
     def render_str(self, name):
