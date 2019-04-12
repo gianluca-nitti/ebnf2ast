@@ -84,15 +84,22 @@ class Optional(ebnf_nodes.Optional):
 class List(ebnf_nodes.List):
     def render_class(self, name):
         c = self._contents[0]
-        assert isinstance(c, Sequence) or isinstance(c, Alternative), 'List must contain Sequence or Alternative, %s found' % c.pp()
-        return c.render(name)
+        return c.render(name) \
+            if isinstance(c, Sequence) or isinstance(c, Alternative) \
+            else ''
+    def _get_type(self):
+        c = self._contents[0]
+        return self.get_name() \
+            if isinstance(c, Sequence) or isinstance(c, Alternative) \
+            else c.ident
     def render_def_initializer(self, name):
         return '%sself._%s = []\n' % (2*ind, name)
     def render_constructor_part(self, name):
-        return (1, '_%s: \'typing.List[%s]\' = []' % (name, name), \
-                '%sself._%s = _%s\n' % (2*ind, name, name))
+        return (1, '_%s: \'typing.List[%s]\' = []' % (name, self._get_type()), \
+            '%sself._%s = _%s\n' % (2*ind, name, name))
     def render_methods(self, name):
-        return '%sdef set_%s_list(self, val: \'typing.List[%s]\'):\n%sself._%s = val\n' % (ind, name, name, 2*ind, name)
+        return '%sdef set_%s_list(self, val: \'typing.List[%s]\'):\n%sself._%s = val\n' \
+            % (ind, name, self._get_type(), 2*ind, name)
     def render_str(self, name):
         return '\'%s\'.join(map(str, self._%s))' % (self._sep, name)
 class Identifier(ebnf_nodes.Identifier):

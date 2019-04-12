@@ -62,7 +62,6 @@ def pad_literals(rules, module):
         return module.Literal(' %s ' % node.literal) if flt else node
     dfsMap(f, rules)
 
-i = 0
 def simplify_lists(rules, module):
     def f(node):
         if isinstance(node, module.Sequence) and \
@@ -72,16 +71,11 @@ def simplify_lists(rules, module):
             len(node._contents[1]._contents[0]._contents) == 2 and \
             isinstance(node._contents[1]._contents[0]._contents[0], module.Literal) and \
             node._contents[0] == node._contents[1]._contents[0]._contents[1]:
-            global i
-            print('#', node.pp())
-            i = i + 1
             sep = node._contents[1]._contents[0]._contents[0].literal
-            return module.Sequence([module.List(module.Sequence([node._contents[0]]), sep)])
+            return module.Sequence([module.List(node._contents[0], sep)])
         else:
             return node
     dfsMap(f, rules)
-    #transform_and_inline(f, rules, module)
-    print("# ===", i, "===")
 
 def apply_all(rules, module):
     transforms = [
