@@ -84,7 +84,7 @@ class Optional(ebnf_nodes.Optional):
 class List(ebnf_nodes.List):
     def render_class(self, name):
         c = self._contents[0]
-        assert isinstance(c, Sequence) or isinstance(c, Alternative), 'List must contain Sequence or Alternative'
+        assert isinstance(c, Sequence) or isinstance(c, Alternative), 'List must contain Sequence or Alternative, %s found' % c.pp()
         return c.render(name)
     def render_def_initializer(self, name):
         return '%sself._%s = []\n' % (2*ind, name)
@@ -94,7 +94,7 @@ class List(ebnf_nodes.List):
     def render_methods(self, name):
         return '%sdef set_%s_list(self, val: \'typing.List[%s]\'):\n%sself._%s = val\n' % (ind, name, name, 2*ind, name)
     def render_str(self, name):
-        return '\'\'.join(map(str, self._%s))' % name
+        return '\'%s\'.join(map(str, self._%s))' % (self._sep, name)
 class Identifier(ebnf_nodes.Identifier):
     def render_methods(self, name):
         return '%sdef set_%s(self, val: \'%s\'):\n%sself._%s = val\n' % (ind, name, self.ident, 2*ind, name)

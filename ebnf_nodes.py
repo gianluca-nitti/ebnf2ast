@@ -57,12 +57,13 @@ class Optional(Container):
     def pp(self):
         return 'Optional( ' + self._contents[0].pp() + ' )'
 class List(Container):
-    def __init__(self, content):
+    def __init__(self, content, sep = ''):
         super().__init__([content])
+        self._sep = sep
     def get_preferred_name(self):
         return 'list_%s' % self._contents[0].get_preferred_name()
     def pp(self):
-        return 'List( ' + self._contents[0].pp() + ' )'
+        return 'List( %s, sep=\"%s\" )' % (self._contents[0].pp(), self._sep)
 
 class Identifier(RuleComponent):
     def __init__(self, ident):

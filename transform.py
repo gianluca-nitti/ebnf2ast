@@ -12,6 +12,19 @@ def dfsMap(f, rules):
         rules[lhs].dfsMap(f)
         rules[lhs] = f(rules[lhs])
 
+def transform_and_inline(f, rules, module): # TODO: probably not needed, remove
+    transformed = dict()
+    for lhs, rhs in rules.items():
+        new_rhs = f(rhs)
+        if new_rhs != None:
+            transformed[lhs] = new_rhs
+    ids = [module.Identifier(ident) for ident in transformed.keys()]
+    def replacer(node):
+        return transformed[node.ident] if node in ids else node
+    dfsMap(replacer, rules)
+    for lhs in transformed.keys():
+        del rules[lhs]
+
 def concat_adj_literals(rules, module):
     def reducer(acc, part):
         if len(acc) > 0 and isinstance(acc[-1], module.Literal) and isinstance(part, module.Literal):
@@ -49,7 +62,35 @@ def pad_literals(rules, module):
         return module.Literal(' %s ' % node.literal) if flt else node
     dfsMap(f, rules)
 
+i = 0
+def simplify_lists(rules, module):
+    def f(node):
+        if isinstance(node, module.Sequence) and \
+            len(node._contents) == 2 and \
+            isinstance(node._contents[1], module.List) and \
+            isinstance(node._contents[1]._contents[0], module.Sequence) and \
+            len(node._contents[1]._contents[0]._contents) == 2 and \
+            isinstance(node._contents[1]._contents[0]._contents[0], module.Literal) and \
+            node._contents[0] == node._contents[1]._contents[0]._contents[1]:
+            global i
+            print('#', node.pp())
+            i = i + 1
+            sep = node._contents[1]._contents[0]._contents[0].literal
+            return module.Sequence([module.List(module.Sequence([node._contents[0]]), sep)])
+        else:
+            return node
+    dfsMap(f, rules)
+    #transform_and_inline(f, rules, module)
+    print("# ===", i, "===")
+
 def apply_all(rules, module):
-    transforms = [remove_dup_alternatives, pad_literals, concat_adj_literals, fix_quotes, name_parts]
+    transforms = [
+        remove_dup_alternatives,
+        pad_literals,
+        concat_adj_literals,
+        fix_quotes,
+        simplify_lists,
+        name_parts
+    ]
     for t in transforms:
         t(rules, module)
