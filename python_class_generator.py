@@ -62,7 +62,9 @@ class Optional(ebnf_nodes.Optional):
     def render_class(self, name):
         c = self._contents[0]
         assert isinstance(c, Sequence) or isinstance(c, Alternative), 'Optional must contain Sequence or Alternative'
-        return c.render(name)
+        return '' \
+            if isinstance(c, Sequence) and len(c._contents) == 1 and isinstance(c._contents[0], Identifier) \
+            else c.render(name)
     def render_def_initializer(self, name):
         return '%sself._%s = \'\'\n' % (2*ind, name)
     def render_constructor_part(self, name):
@@ -75,10 +77,21 @@ class Optional(ebnf_nodes.Optional):
                 type_annot = 'typing.Union[%s, bool]' % type_annot
                 init_expr = '%s() if %s == True else (None if %s == False else %s)' \
                     % (name, init_expr, init_expr, init_expr)
+        # Allow content to be passed directly (no opt_ wrapper class) for optional identifiers
+        elif isinstance(self._contents[0], Sequence) \
+            and len(self._contents[0]._contents) == 1 \
+            and isinstance(self._contents[0]._contents[0], Identifier):
+                cont_type = self._contents[0]._contents[0].ident
+                type_annot = 'typing.Optional[%s]' % cont_type
         return (1, '_%s: \'%s\' = None' % (name, type_annot), \
                 '%sself._%s = %s\n' % (2*ind, name, init_expr))
     def render_methods(self, name):
-        return '%sdef set_%s(self, val: \'typing.Optional[%s]\'):\n%sself._%s = val\n' % (ind, name, name, 2*ind, name)
+        cont_t = name
+        if isinstance(self._contents[0], Sequence) \
+            and len(self._contents[0]._contents) == 1 \
+            and isinstance(self._contents[0]._contents[0], Identifier):
+                cont_t = self._contents[0]._contents[0].ident
+        return '%sdef set_%s(self, val: \'typing.Optional[%s]\'):\n%sself._%s = val\n' % (ind, name, cont_t, 2*ind, name)
     def render_str(self, name):
         return '_opt_to_str(self._%s)' % name
 class List(ebnf_nodes.List):
