@@ -49,7 +49,7 @@ class Sequence(ebnf_nodes.Sequence):
         #if len(def_constructor_lines) > 0: # TODO overloading???
         #    r += '%sdef __init__(self):\n%s' % (ind, ''.join(def_constructor_lines))
         if len(constructor_parts) > 0:
-            constructor_parts.sort()
+            constructor_parts.sort() # put optionals last. TODO might not be a good idea (different order from ebnf)
             # TODO add decorator to enforce type checks at runtime
             # TODO consider using kwargs (BUT, maybe not much of a good idea, you'd have to look at the code anyway)
             r += '%sdef __init__(self, %s):\n%s' % (ind, \

@@ -77,6 +77,28 @@ def simplify_lists(rules, module):
             return node
     dfsMap(f, rules)
 
+def remove_aliases(rules, module):
+    aliases = dict()
+    for lhs, rhs in rules.items():
+        if isinstance(rhs, module.Sequence) \
+            and len(rhs._contents) == 1 \
+            and isinstance(rhs._contents[0], module.Identifier):
+            aliases[lhs] = rhs._contents[0].ident
+    keep_going = True
+    while keep_going:
+        keep_going = False
+        for k in aliases.keys():
+            if aliases[k] in aliases.keys():
+                aliases[k] = aliases[aliases[k]]
+                keep_going = True
+    def replacer(node):
+        if isinstance(node, module.Identifier):
+            rep = aliases.get(node.ident)
+            return module.Identifier(rep) if rep != None else node
+        else:
+            return node
+    dfsMap(replacer, rules)
+
 def apply_all(rules, module):
     transforms = [
         remove_dup_alternatives,
@@ -84,6 +106,7 @@ def apply_all(rules, module):
         concat_adj_literals,
         fix_quotes,
         simplify_lists,
+        remove_aliases,
         name_parts
     ]
     for t in transforms:
