@@ -9,7 +9,7 @@ class RuleComponent:
         pass
     def dfs_visit(self, f):
         pass
-    def dfsMap(self, f):
+    def dfs_map(self, f):
         pass
 class Container(RuleComponent):
     def __init__(self, contents):
@@ -34,9 +34,9 @@ class Container(RuleComponent):
         for i in range(len(self._contents)):
             self._contents[i].dfs_visit(f)
             f(self._contents[i])
-    def dfsMap(self, f):
+    def dfs_map(self, f):
         for i in range(len(self._contents)):
-            self._contents[i].dfsMap(f)
+            self._contents[i].dfs_map(f)
             self._contents[i] = f(self._contents[i])
 
 class Alternative(Container):

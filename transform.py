@@ -7,23 +7,10 @@ def dfs_visit(f, rules):
     for rule_rhs in rules.values():
         rule_rhs.dfs_visit(f)
 
-def dfsMap(f, rules):
+def dfs_map(f, rules):
     for lhs in rules.keys():
-        rules[lhs].dfsMap(f)
+        rules[lhs].dfs_map(f)
         rules[lhs] = f(rules[lhs])
-
-def transform_and_inline(f, rules, module): # TODO: probably not needed, remove
-    transformed = dict()
-    for lhs, rhs in rules.items():
-        new_rhs = f(rhs)
-        if new_rhs != None:
-            transformed[lhs] = new_rhs
-    ids = [module.Identifier(ident) for ident in transformed.keys()]
-    def replacer(node):
-        return transformed[node.ident] if node in ids else node
-    dfsMap(replacer, rules)
-    for lhs in transformed.keys():
-        del rules[lhs]
 
 def concat_adj_literals(rules, module):
     def reducer(acc, part):
@@ -36,7 +23,7 @@ def concat_adj_literals(rules, module):
             return module.Sequence(functools.reduce(reducer, node._contents, []))
         else:
             return node
-    dfsMap(f, rules)
+    dfs_map(f, rules)
 
 def remove_dup_alternatives(rules, module):
     def f(node):
@@ -44,7 +31,7 @@ def remove_dup_alternatives(rules, module):
             return module.Alternative(list(set(node._contents)))
         else:
             return node
-    dfsMap(f, rules)
+    dfs_map(f, rules)
 
 def name_parts(rules, module):
     for rhs in rules.values():
@@ -53,14 +40,14 @@ def name_parts(rules, module):
 def fix_quotes(rules, module):
     def f(node):
         flt = isinstance(node, module.Identifier) and node.ident == 'double_quote'
-        return module.Literal('\'"\'') if flt else node # TODO check with a VHDL string literal
-    dfsMap(f, rules)
+        return module.Literal('\"') if flt else node
+    dfs_map(f, rules)
 
 def pad_literals(rules, module):
     def f(node):
         flt = isinstance(node, module.Literal)
         return module.Literal(' %s ' % node.literal) if flt else node
-    dfsMap(f, rules)
+    dfs_map(f, rules)
 
 def simplify_lists(rules, module):
     def f(node):
@@ -75,7 +62,7 @@ def simplify_lists(rules, module):
             return module.Sequence([module.List(node._contents[0], sep)])
         else:
             return node
-    dfsMap(f, rules)
+    dfs_map(f, rules)
 
 def remove_aliases(rules, module):
     aliases = dict()
@@ -97,7 +84,7 @@ def remove_aliases(rules, module):
             return module.Identifier(rep) if rep != None else node
         else:
             return node
-    dfsMap(replacer, rules)
+    dfs_map(replacer, rules)
 
 def apply_all(rules, module):
     transforms = [
