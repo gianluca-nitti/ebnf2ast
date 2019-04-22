@@ -30,7 +30,6 @@ class Sequence(ebnf_nodes.Sequence):
         classes = []
         def_constructor_lines = []
         constructor_parts = []
-        methods = []
         str_result = []
         for part in self._contents:
             assert not isinstance(part, Alternative), 'Alternative inside Sequence'
@@ -41,13 +40,9 @@ class Sequence(ebnf_nodes.Sequence):
                 def_constructor_lines.append(part.render_def_initializer(part.get_name()))
             if hasattr(part, 'render_constructor_part'):
                 constructor_parts.append(part.render_constructor_part(part.get_name()))
-            if hasattr(part, 'render_methods'):
-                methods.append(part.render_methods(part.get_name()))
             str_result.append(part.render_str(part.get_name()))
         r = ''.join(classes)
         r += 'class %s%s:\n' % (name, '(%s)' % base if len(base) > 0 else '')
-        #if len(def_constructor_lines) > 0: # TODO overloading???
-        #    r += '%sdef __init__(self):\n%s' % (ind, ''.join(def_constructor_lines))
         if len(constructor_parts) > 0:
             constructor_parts.sort() # put optionals last. TODO might not be a good idea (different order from ebnf)
             # TODO add decorator to enforce type checks at runtime
@@ -55,7 +50,6 @@ class Sequence(ebnf_nodes.Sequence):
             r += '%sdef __init__(self, %s):\n%s' % (ind, \
                 ','.join(map(lambda x: x[1], constructor_parts)),
                 ''.join(map(lambda x: x[2], constructor_parts)))
-        r += ''.join(methods)
         r += '%sdef __str__(self):\n%sreturn %s\n' % (ind, 2*ind, ' + '.join(str_result))
         return r
 class Optional(ebnf_nodes.Optional):
@@ -66,7 +60,7 @@ class Optional(ebnf_nodes.Optional):
             if isinstance(c, Sequence) and len(c._contents) == 1 and isinstance(c._contents[0], Identifier) \
             else c.render(name)
     def render_def_initializer(self, name):
-        return '%sself._%s = \'\'\n' % (2*ind, name)
+        return '%sself.%s = \'\'\n' % (2*ind, name)
     def render_constructor_part(self, name):
         type_annot = 'typing.Optional[%s]' % name
         init_expr = '_%s' % name
@@ -84,16 +78,9 @@ class Optional(ebnf_nodes.Optional):
                 cont_type = self._contents[0]._contents[0].ident
                 type_annot = 'typing.Optional[%s]' % cont_type
         return (1, '_%s: \'%s\' = None' % (name, type_annot), \
-                '%sself._%s = %s\n' % (2*ind, name, init_expr))
-    def render_methods(self, name):
-        cont_t = name
-        if isinstance(self._contents[0], Sequence) \
-            and len(self._contents[0]._contents) == 1 \
-            and isinstance(self._contents[0]._contents[0], Identifier):
-                cont_t = self._contents[0]._contents[0].ident
-        return '%sdef set_%s(self, val: \'typing.Optional[%s]\'):\n%sself._%s = val\n' % (ind, name, cont_t, 2*ind, name)
+                '%sself.%s = %s\n' % (2*ind, name, init_expr))
     def render_str(self, name):
-        return '_opt_to_str(self._%s)' % name
+        return '_opt_to_str(self.%s)' % name
 class List(ebnf_nodes.List):
     def render_class(self, name):
         c = self._contents[0]
@@ -106,22 +93,17 @@ class List(ebnf_nodes.List):
             if isinstance(c, Sequence) or isinstance(c, Alternative) \
             else c.ident
     def render_def_initializer(self, name):
-        return '%sself._%s = []\n' % (2*ind, name)
+        return '%sself.%s = []\n' % (2*ind, name)
     def render_constructor_part(self, name):
         return (1, '_%s: \'typing.List[%s]\' = []' % (name, self._get_type()), \
-            '%sself._%s = _%s\n' % (2*ind, name, name))
-    def render_methods(self, name):
-        return '%sdef set_%s_list(self, val: \'typing.List[%s]\'):\n%sself._%s = val\n' \
-            % (ind, name, self._get_type(), 2*ind, name)
+            '%sself.%s = _%s\n' % (2*ind, name, name))
     def render_str(self, name):
-        return '\'%s\'.join(map(str, self._%s))' % (self._sep, name)
+        return '\'%s\'.join(map(str, self.%s))' % (self._sep, name)
 class Identifier(ebnf_nodes.Identifier):
-    def render_methods(self, name):
-        return '%sdef set_%s(self, val: \'%s\'):\n%sself._%s = val\n' % (ind, name, self.ident, 2*ind, name)
     def render_constructor_part(self, name):
-        return (0, '_%s: \'%s\'' % (name, self.ident), '%sself._%s = _%s\n' % (2*ind, name, name))
+        return (0, '_%s: \'%s\'' % (name, self.ident), '%sself.%s = _%s\n' % (2*ind, name, name))
     def render_str(self, name):
-        return 'str(self._%s)' % name
+        return 'str(self.%s)' % name
 class Literal(ebnf_nodes.Literal):
     def render_str(self, name):
         return '\"%s\"' % self.literal.replace('\\', '\\\\').replace('\"', ' \\\" ')
