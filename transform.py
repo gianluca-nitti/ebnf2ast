@@ -1,8 +1,5 @@
 import functools
 
-#def map_rhs(f, rules):
-#    return {lhs: f(rhs) for lhs, rhs in rules.iteritems()}
-
 def dfs_visit(f, rules):
     for rule_rhs in rules.values():
         rule_rhs.dfs_visit(f)
@@ -71,6 +68,7 @@ def remove_aliases(rules, module):
             and len(rhs._contents) == 1 \
             and isinstance(rhs._contents[0], module.Identifier):
             aliases[lhs] = rhs._contents[0].ident
+    print('# Found', len(aliases), 'alias rules:', aliases)
     keep_going = True
     while keep_going:
         keep_going = False
@@ -86,15 +84,42 @@ def remove_aliases(rules, module):
             return node
     dfs_map(replacer, rules)
 
-def apply_all(rules, module):
-    transforms = [
-        remove_dup_alternatives,
-        pad_literals,
-        concat_adj_literals,
-        fix_quotes,
-        simplify_lists,
-        remove_aliases,
-        name_parts
-    ]
-    for t in transforms:
-        t(rules, module)
+def find_idents(rules, module, root = None):
+    ids = {root: 1} if root != None else dict()
+    def find_ident_usages(x):
+        if isinstance(x, module.Identifier):
+            ids[x.ident] = ids.get(x.ident, 0) + 1
+    dfs_visit(find_ident_usages, rules)
+    return ids
+
+def remove_unreferenced(rules, module, root):
+    def find_unreferenced_rules():
+        ids = find_idents(rules, module, root)
+        result = set(filter(lambda x: x not in ids.keys(), rules.keys()))
+        print('# Found', len(result), 'unreferenced rules:', result)
+        return result
+    unused_rules = find_unreferenced_rules()
+    while len(unused_rules) > 0:
+        print('# Deleting', len(unused_rules), 'unreferenced rules')
+        for r in unused_rules:
+            del rules[r]
+        unused_rules = find_unreferenced_rules()
+
+def report_undef_idents(rules, module):
+    ids = find_idents(rules, module)
+    print('# Found a total of', len(ids), 'identifiers')
+    undef_ids = set(filter(lambda x: x not in rules.keys(), ids.keys()))
+    if len(undef_ids) > 0:
+        print('# Found', len(undef_ids), 'undefined identifiers:', undef_ids)
+
+all_transforms = [
+    remove_dup_alternatives,
+    pad_literals,
+    concat_adj_literals,
+    fix_quotes,
+    simplify_lists,
+    remove_aliases,
+    name_parts,
+    remove_unreferenced,
+    report_undef_idents
+]
