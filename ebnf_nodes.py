@@ -43,19 +43,19 @@ class Alternative(Container):
     def __init__(self, alts):
         super().__init__(alts)
     def pp(self):
-        return 'Alternative( ' + ', '.join(map(lambda x: x.pp(), self._contents)) + ' )'
+        return 'Alternative(' + ', '.join(map(lambda x: x.pp(), self._contents)) + ')'
 class Sequence(Container):
     def __init__(self, parts):
         super().__init__(parts)
     def pp(self):
-        return 'Sequence( ' + ', '.join(map(lambda x: x.pp(), self._contents)) + ' )'
+        return 'Sequence(' + ', '.join(map(lambda x: x.pp(), self._contents)) + ')'
 class Optional(Container):
     def __init__(self, content):
         super().__init__([content])
     def get_preferred_name(self):
         return 'opt_%s' % self._contents[0].get_preferred_name()
     def pp(self):
-        return 'Optional( ' + self._contents[0].pp() + ' )'
+        return 'Optional(' + self._contents[0].pp() + ')'
 class List(Container):
     def __init__(self, content, sep = ''):
         super().__init__([content])
@@ -63,7 +63,7 @@ class List(Container):
     def get_preferred_name(self):
         return 'list_%s' % self._contents[0].get_preferred_name()
     def pp(self):
-        return 'List( %s, sep=\"%s\" )' % (self._contents[0].pp(), self._sep)
+        return 'List(%s, sep=\"%s\")' % (self._contents[0].pp(), self._sep)
 
 class Identifier(RuleComponent):
     def __init__(self, ident):
@@ -75,7 +75,7 @@ class Identifier(RuleComponent):
     def get_preferred_name(self):
         return self.ident
     def pp(self):
-        return 'Identifier( ' + self.ident + ' )'
+        return 'Identifier(' + self.ident + ')'
 class Literal(RuleComponent):
     def __init__(self, literal):
         self.literal = literal
@@ -86,4 +86,4 @@ class Literal(RuleComponent):
     def get_preferred_name(self):
         return self.literal
     def pp(self):
-        return 'Literal( ' + self.literal + ' )'
+        return 'Literal(\"' + self.literal + '\")'

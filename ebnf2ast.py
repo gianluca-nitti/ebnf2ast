@@ -18,3 +18,4 @@ if __name__ == '__main__':
     for (lhs, rhs) in rules.items():
         assert isinstance(rhs, ebnf_nodes.Sequence) or isinstance(rhs, ebnf_nodes.Alternative)
         print(rhs.render(lhs), end='')
+        # print(lhs, '::=', rhs.pp())

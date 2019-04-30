@@ -106,4 +106,4 @@ class Identifier(ebnf_nodes.Identifier):
         return 'str(self.%s)' % name
 class Literal(ebnf_nodes.Literal):
     def render_str(self, name):
-        return '\"%s\"' % self.literal.replace('\\', '\\\\').replace('\"', ' \\\" ')
+        return '\"%s\"' % self.literal.replace('\\', '\\\\').replace('\"', '\\\"')

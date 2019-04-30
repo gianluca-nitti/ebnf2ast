@@ -42,7 +42,8 @@ def fix_quotes(rules, module):
 
 def pad_literals(rules, module):
     def f(node):
-        flt = isinstance(node, module.Literal)
+        # NOTE: this is VHDL-specific, for VHDL keywords
+        flt = isinstance(node, module.Literal) and node.literal.strip().isalpha()
         return module.Literal(' %s ' % node.literal) if flt else node
     dfs_map(f, rules)
 
