@@ -95,8 +95,8 @@ class List(ebnf_nodes.List):
     def render_def_initializer(self, name):
         return '%sself.%s = []\n' % (2*ind, name)
     def render_constructor_part(self, name):
-        return (1, '_%s: \'typing.List[%s]\' = []' % (name, self._get_type()), \
-            '%sself.%s = _%s\n' % (2*ind, name, name))
+        return (1, '_%s: \'typing.Optional[typing.List[%s]]\' = None' % (name, self._get_type()), \
+            '%sself.%s = _%s or []\n' % (2*ind, name, name))
     def render_str(self, name):
         return '\'%s\'.join(map(str, self.%s))' % (self._sep, name)
 class Identifier(ebnf_nodes.Identifier):
